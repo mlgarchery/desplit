@@ -1,0 +1,14 @@
+# List the start up tasks. Learn more https://www.gitpod.io/docs/config-start-tasks/
+tasks:
+  - name: Setup forge and install dependency
+    before: | 
+      curl -L https://foundry.paradigm.xyz | bash
+      echo "export PATH=$PATH:/home/gitpod/.foundry/bin" >> /home/gitpod/.bashrc
+      source /home/gitpod/.bashrc
+      foundryup
+    init: forge install # run during the prebuild
+    command: forge build
+
+vscode:
+  extensions:
+    - JuanBlanco.solidity
