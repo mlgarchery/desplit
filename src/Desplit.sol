@@ -2,8 +2,9 @@
 pragma solidity ^0.8.13;
 
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "forge-std/console2.sol";
 
-
+// main contract storing all the groups
 contract Desplit {
     mapping(uint256 => DesplitGroup) public groups;
     uint256 public groupCount;
@@ -18,6 +19,7 @@ contract Desplit {
     }
 }
 
+// contract to manage one particular group
 contract DesplitGroup {
     address public creator;
     address[] public addresses;
@@ -28,6 +30,7 @@ contract DesplitGroup {
     constructor(address _creator, address[] memory _addresses) {
         creator = _creator;
         addresses = _addresses;
+/*         console2.log("THIS IS A TEST !!!!!!!", 17); */
     }
 
     function getBalance(address _address) public view returns (int256) {
@@ -59,6 +62,26 @@ contract DesplitGroup {
         validate(true); // sender is validating by default
     }
 
+    function transferDesplit(address sender, address recipient, IERC20 token, uint amount) public {
+        token.transferFrom(sender, recipient, amount);
+        uint n = addresses.length;
+        for (uint i = 0; i < n; i++) {
+            if (addresses[i] != sender) {
+                console2.log("balance of:", addresses[i], "result:", uint(balances[addresses[i]]));
+                balances[addresses[i]] -= int(amount / n);
+                console2.log("modifying balance of:", addresses[i], "result:", uint(balances[addresses[i]]));
+            }
+        }
+        balances[sender] += int((n-1) * (amount / n));
+
+        console2.log("transfer done, balance sender:"); 
+        /* console2.logInt(balances[sender]); */
+        console2.log(uint(balances[sender]));
+        console2.log("balances addr1:", uint(balances[addresses[1]]));
+        // TODO how to send notifications
+    }
+
+
     function validate(bool b) public {
         for (uint256 i = 0; i < addresses.length; i++) {
             if (msg.sender == addresses[i]) {
@@ -67,14 +90,14 @@ contract DesplitGroup {
         }
         // check that everyone approved the transaction
         if (request.approbations.allApproved()) {
-            request.tokenAddress.transferFrom(
+            transferDesplit(
                 request.sender,
                 request.recipient,
+                request.token,
                 request.amount
             );
         }
     }
-    // TODO how to send notifications
 }
 
 struct Request {
@@ -82,16 +105,14 @@ struct Request {
     address recipient;
     uint256 amount;
     Approbations approbations;
-    IERC20 tokenAddress;
+    IERC20 token;
 }
 
 contract Approbations {
     bool[] public approbations;
-    bool public all_approved;
 
     constructor(uint256 size) {
         approbations = new bool[](size);
-        all_approved = false;
     }
 
     function approve(uint256 i, bool b) public {
